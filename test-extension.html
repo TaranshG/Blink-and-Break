@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Extension Test</title>
+</head>
+<body>
+    <h1>Testing Chrome Notifications</h1>
+    <button id="testBtn">Test Notification Now</button>
+    <button id="checkPerms">Check Permissions</button>
+    <button id="testAlarm">Test Alarm (10 seconds)</button>
+    <div id="output" style="margin-top: 20px; font-family: monospace;"></div>
+    
+    <script>
+        const output = document.getElementById('output');
+        
+        function log(msg) {
+            output.innerHTML += msg + '<br>';
+            console.log(msg);
+        }
+        
+        document.getElementById('testBtn').addEventListener('click', async () => {
+            log('Creating test notification...');
+            
+            try {
+                const notifId = await chrome.notifications.create({
+                    type: 'basic',
+                    iconUrl: 'icons/icon128.png',
+                    title: 'TEST NOTIFICATION',
+                    message: 'If you see this, notifications work!',
+                    priority: 2,
+                    requireInteraction: true
+                });
+                log('✓ Notification created: ' + notifId);
+            } catch (error) {
+                log('✗ Error: ' + error.message);
+            }
+        });
+        
+        document.getElementById('checkPerms').addEventListener('click', async () => {
+            log('Checking permissions...');
+            
+            const perms = await chrome.permissions.getAll();
+            log('Permissions: ' + JSON.stringify(perms));
+            
+            chrome.alarms.getAll((alarms) => {
+                log('Active alarms: ' + JSON.stringify(alarms));
+            });
+            
+            chrome.storage.sync.get(null, (data) => {
+                log('Storage data: ' + JSON.stringify(data, null, 2));
+            });
+        });
+        
+        document.getElementById('testAlarm').addEventListener('click', () => {
+            log('Creating alarm for 10 seconds from now...');
+            
+            chrome.alarms.create('testAlarm', {
+                delayInMinutes: 0.166 // 10 seconds
+            });
+            
+            chrome.alarms.get('testAlarm', (alarm) => {
+                if (alarm) {
+                    const when = new Date(alarm.scheduledTime);
+                    log('✓ Alarm created, will fire at: ' + when.toLocaleTimeString());
+                } else {
+                    log('✗ Alarm NOT created!');
+                }
+            });
+        });
+        
+        // Listen for alarms
+        chrome.alarms.onAlarm.addListener((alarm) => {
+            log('🔔 ALARM FIRED: ' + alarm.name);
+            
+            chrome.notifications.create({
+                type: 'basic',
+                iconUrl: 'icons/icon128.png',
+                title: 'ALARM TEST',
+                message: 'The alarm system works!',
+                priority: 2,
+                requireInteraction: true
+            });
+        });
+    </script>
+</body>
+</html>
