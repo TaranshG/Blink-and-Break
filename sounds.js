@@ -1,5 +1,3 @@
-
-
 // ============================================
 // FILE 5: sounds.js
 // ============================================
@@ -9,18 +7,18 @@ const SoundManager = {
       const ctx = new (window.AudioContext || window.webkitAudioContext)();
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
-      
+
       osc.connect(gain);
       gain.connect(ctx.destination);
-      
+
       osc.frequency.value = 800;
       gain.gain.setValueAtTime(0.3, ctx.currentTime);
       gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 1);
-      
+
       osc.start(ctx.currentTime);
       osc.stop(ctx.currentTime + 1);
     },
-    
+
     'soft-chime': () => {
       const ctx = new (window.AudioContext || window.webkitAudioContext)();
       const playNote = (freq, time) => {
@@ -39,24 +37,24 @@ const SoundManager = {
       playNote(659, now + 0.2);
       playNote(784, now + 0.4);
     },
-    
+
     'calm-tone': () => {
       const ctx = new (window.AudioContext || window.webkitAudioContext)();
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
-      
+
       osc.connect(gain);
       gain.connect(ctx.destination);
-      
+
       osc.frequency.value = 432;
       osc.type = 'sine';
       gain.gain.setValueAtTime(0.25, ctx.currentTime);
       gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 1.5);
-      
+
       osc.start(ctx.currentTime);
       osc.stop(ctx.currentTime + 1.5);
     },
-    
+
     'nature-bird': () => {
       const ctx = new (window.AudioContext || window.webkitAudioContext)();
       const playChirp = (time) => {
@@ -77,9 +75,9 @@ const SoundManager = {
       playChirp(now + 0.3);
     }
   },
-  
+
   customAudio: null,
-  
+
   play(soundName) {
     if (soundName === 'custom' && this.customAudio) {
       this.customAudio.currentTime = 0;
@@ -88,20 +86,40 @@ const SoundManager = {
       this.sounds[soundName]();
     }
   },
-  
+
   setCustomSound(file) {
-    if (file && file.type.startsWith('audio/')) {
-      const url = URL.createObjectURL(file);
-      this.customAudio = new Audio(url);
-      // Store the URL in chrome storage for persistence
-      chrome.storage.local.set({ customSoundUrl: url });
-    }
+    if (!file || !file.type || !file.type.startsWith('audio/')) return;
+
+    const reader = new FileReader();
+
+    reader.onload = () => {
+      const dataUrl = reader.result;
+
+      // Create audio from the data URL (stable across restarts)
+      this.customAudio = new Audio(dataUrl);
+
+      // Persist the data URL (NOT a blob URL)
+      chrome.storage.local.set({ customSoundDataUrl: dataUrl });
+    };
+
+    reader.onerror = () => {
+      console.log('Custom sound read failed');
+    };
+
+    reader.readAsDataURL(file);
   },
-  
+
   loadCustomSound() {
-    chrome.storage.local.get(['customSoundUrl'], (data) => {
-      if (data.customSoundUrl) {
-        this.customAudio = new Audio(data.customSoundUrl);
+    chrome.storage.local.get(['customSoundDataUrl', 'customSoundUrl'], (data) => {
+      // New correct storage key
+      if (data.customSoundDataUrl) {
+        this.customAudio = new Audio(data.customSoundDataUrl);
+        return;
+      }
+
+      // Cleanup legacy/broken blob URL if it exists
+      if (data.customSoundUrl && typeof data.customSoundUrl === 'string' && data.customSoundUrl.startsWith('blob:')) {
+        chrome.storage.local.remove(['customSoundUrl']);
       }
     });
   }

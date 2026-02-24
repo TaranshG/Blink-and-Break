@@ -8,7 +8,8 @@
 </head>
 <body>
   <div id="app">
-    <!-- Break Active View -->
+
+    <!-- ── Break Active View ─────────────────────────────────────────── -->
     <div id="breakView" class="view" style="display:none">
       <div class="break-container">
         <div class="break-icon">
@@ -19,23 +20,29 @@
         </div>
         <h2 id="breakTitle">Eye Break Time!</h2>
         <p id="breakMessage">Look at something 20 feet away</p>
-        
+
         <div class="break-timer-container">
           <div id="breakTimer" class="break-timer">20</div>
           <div class="break-timer-label">seconds</div>
         </div>
-        
+
         <div id="breakComplete" class="break-complete" style="display:none">
           <div class="complete-icon">✓</div>
           <div class="complete-text" id="completeText">All done!</div>
           <div class="achievement-badge" id="achievementBadge" style="display:none"></div>
         </div>
-        
-        <button id="skipBreakBtn" class="skip-break-btn">Not now</button>
+
+        <div class="break-actions">
+          <button id="snoozeBreakBtn" class="snooze-break-btn">Snooze</button>
+          <button id="skipBreakBtn"   class="skip-break-btn">Not now</button>
+          <button id="turnOffBtnBreak" class="danger-btn" title="Turn off breaks">
+            Turn off
+          </button>
+        </div>
       </div>
     </div>
 
-    <!-- Main View -->
+    <!-- ── Main View ─────────────────────────────────────────────────── -->
     <div id="mainView" class="view">
       <div class="header">
         <div class="logo">
@@ -43,38 +50,55 @@
             <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
             <circle cx="12" cy="12" r="3"></circle>
           </svg>
-          <h1>Blink & Break</h1>
+          <h1>Blink &amp; Break</h1>
         </div>
         <button id="settingsBtn" class="icon-btn" title="Settings">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="12" cy="12" r="3"></circle>
-            <path d="M12 1v6m0 6v6m5.2-13.2-4.2 4.2m0 6-4.2 4.2m13.2-5.2h-6m-6 0H1m13.2 5.2-4.2-4.2m0-6-4.2-4.2"></path>
-          </svg>
+          <svg
+  viewBox="0 0 24 24"
+  width="20"
+  height="20"
+  fill="none"
+  stroke="currentColor"
+  stroke-width="2"
+  stroke-linecap="round"
+  stroke-linejoin="round"
+  aria-hidden="true"
+>
+  <circle cx="12" cy="12" r="3" />
+  <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9c0 .69.28 1.35.77 1.83.48.48 1.14.77 1.83.77H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z" />
+</svg>
         </button>
       </div>
 
       <div class="next-break-card">
         <div class="card-header">
           <span>Next break in</span>
-          <button id="toggleBtn" class="icon-btn" title="Pause/Resume">
-            <svg id="pauseIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <rect x="6" y="4" width="4" height="16"></rect>
-              <rect x="14" y="4" width="4" height="16"></rect>
-            </svg>
-            <svg id="playIcon" style="display:none" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <polygon points="5 3 19 12 5 21 5 3"></polygon>
-            </svg>
-          </button>
+          <div class="card-header-actions">
+            <button id="resetBtn" class="icon-btn reset-btn" title="Reset timer">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="1 4 1 10 7 10"></polyline>
+                <path d="M3.51 15a9 9 0 1 0 .49-4.95"></path>
+              </svg>
+            </button>
+            <button id="toggleBtn" class="icon-btn" title="Pause">
+              <svg id="pauseIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="6" y="4" width="4" height="16"></rect>
+                <rect x="14" y="4" width="4" height="16"></rect>
+              </svg>
+              <svg id="playIcon" style="display:none" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polygon points="5 3 19 12 5 21 5 3"></polygon>
+              </svg>
+            </button>
+          </div>
         </div>
         <div id="nextBreakTime" class="timer">20:00</div>
         <div class="progress-bar">
           <div id="progressFill" class="progress-fill"></div>
         </div>
         <div id="statusText" class="status-text">Active</div>
-        <div style="font-size:11px;color:#9ca3af;text-align:center;margin-top:6px;">If anything glitches, please hit Pause then click Start.</div>
       </div>
 
-      <!-- Eye Pet Section -->
+      <!-- Eye Pet -->
       <div class="eye-pet-card">
         <div class="pet-container">
           <div class="pet-bubble" id="petBubble">Hi! I'm your eye buddy!</div>
@@ -134,61 +158,20 @@
           <li>💡 Match screen brightness to surroundings</li>
         </ul>
       </div>
-      <div style="
-  margin-top: 14px;
-  padding: 12px 14px;
-  border-radius: 16px;
-  background: rgba(255,255,255,0.04);
-  border: 1px solid rgba(255,255,255,0.06);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-">
-  <div style="display:flex;flex-direction:column;gap:4px;">
-    <div style="font-size:12px;color:#e5e7eb;font-weight:600;letter-spacing:0.2px;">
-      Built by Taransh
-    </div>
-    <div style="font-size:11px;color:#9ca3af;">
-      Questions or glitches? I’ll fix it fast.
-    </div>
-  </div>
 
-  <div style="display:flex;gap:10px;align-items:center;">
-    <a href="https://www.linkedin.com/in/taransh-goyal-6a52b8296/"
-       target="_blank" rel="noopener noreferrer"
-       style="
-         font-size:12px;
-         color:#60a5fa;
-         text-decoration:none;
-         padding:8px 10px;
-         border-radius:12px;
-         background: rgba(96,165,250,0.12);
-         border: 1px solid rgba(96,165,250,0.20);
-         white-space:nowrap;
-       ">
-      LinkedIn ↗
-    </a>
-
-    <a href="https://forms.gle/QAdW4YE3gHEoK4e16"
-       target="_blank" rel="noopener noreferrer"
-       style="
-         font-size:12px;
-         color:#f9fafb;
-         text-decoration:none;
-         padding:8px 10px;
-         border-radius:12px;
-         background: rgba(16,185,129,0.14);
-         border: 1px solid rgba(16,185,129,0.22);
-         white-space:nowrap;
-       ">
-      Report bug
-    </a>
-  </div>
-</div>
+      <div class="footer-card">
+        <div class="footer-info">
+          <div class="footer-name">Built by Taransh</div>
+          <div class="footer-sub">Questions or glitches? I'll fix it fast.</div>
+        </div>
+        <div class="footer-links">
+          <a href="https://www.linkedin.com/in/taransh-goyal-6a52b8296/" target="_blank" rel="noopener noreferrer" class="footer-link footer-link--blue">LinkedIn ↗</a>
+          <a href="https://forms.gle/QAdW4YE3gHEoK4e16" target="_blank" rel="noopener noreferrer" class="footer-link footer-link--green">Report bug</a>
+        </div>
+      </div>
     </div>
 
-    <!-- Settings View -->
+    <!-- ── Settings View ──────────────────────────────────────────────── -->
     <div id="settingsView" class="view" style="display:none">
       <div class="header">
         <h2>Settings</h2>
@@ -204,13 +187,22 @@
         <div class="setting-item">
           <label for="intervalInput">Reminder Interval (minutes)</label>
           <input type="number" id="intervalInput" min="1" max="1440" value="20">
-          <span class="input-hint">How often to remind you (1-1440 minutes)</span>
+          <span class="input-hint">How often to remind you (1–1440 minutes)</span>
         </div>
 
         <div class="setting-item">
           <label for="durationInput">Break Duration (seconds)</label>
           <input type="number" id="durationInput" min="5" max="300" value="20">
-          <span class="input-hint">How long each break should last (5-300 seconds)</span>
+          <span class="input-hint">How long each break should last (5–300 seconds)</span>
+        </div>
+
+        <div class="setting-item">
+          <label for="snoozeInput">Snooze Duration (minutes)</label>
+          <input type="number" id="snoozeInput" min="1" max="120" value="5">
+          <span class="input-hint">How long to delay when you snooze (1–120 minutes)</span>
+          <button id="turnOffBtn" class="danger-btn">
+            🔕 Turn off breaks
+          </button>
         </div>
 
         <div class="toggle-item">
@@ -218,9 +210,7 @@
             <span>Blink Reminders</span>
             <span class="toggle-description">Show blink exercise during breaks</span>
           </div>
-          <div class="toggle" id="blinkToggle">
-            <div class="toggle-slider"></div>
-          </div>
+          <div class="toggle" id="blinkToggle"><div class="toggle-slider"></div></div>
         </div>
 
         <div class="toggle-item">
@@ -228,9 +218,7 @@
             <span>Dark Mode</span>
             <span class="toggle-description">Easier on the eyes in low light</span>
           </div>
-          <div class="toggle" id="darkModeToggle">
-            <div class="toggle-slider"></div>
-          </div>
+          <div class="toggle" id="darkModeToggle"><div class="toggle-slider"></div></div>
         </div>
 
         <div class="toggle-item">
@@ -238,112 +226,56 @@
             <span>Sound Notifications</span>
             <span class="toggle-description">Play sound when break starts</span>
           </div>
-          <div class="toggle active" id="soundToggle">
-            <div class="toggle-slider"></div>
-          </div>
+          <div class="toggle active" id="soundToggle"><div class="toggle-slider"></div></div>
         </div>
 
         <div id="soundSettings" class="sound-settings">
           <label>Notification Sound</label>
-          
+
           <button class="sound-option active" data-sound="gentle-bell">
             <span>🔔 Gentle Bell</span>
-            <svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <polyline points="20 6 9 17 4 12"></polyline>
-            </svg>
+            <svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg>
           </button>
-
           <button class="sound-option" data-sound="soft-chime">
             <span>🎵 Soft Chime</span>
-            <svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <polyline points="20 6 9 17 4 12"></polyline>
-            </svg>
+            <svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg>
           </button>
-
           <button class="sound-option" data-sound="calm-tone">
             <span>🧘 Calm Tone</span>
-            <svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <polyline points="20 6 9 17 4 12"></polyline>
-            </svg>
+            <svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg>
           </button>
-
           <button class="sound-option" data-sound="nature-bird">
             <span>🐦 Nature Sound</span>
-            <svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <polyline points="20 6 9 17 4 12"></polyline>
-            </svg>
+            <svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg>
           </button>
 
-          <label class="sound-option upload-option" for="customSoundInput">
-            <input type="file" id="customSoundInput" accept="audio/*" style="display:none">
-            <span>📁 Upload Custom Sound</span>
-            <svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <polyline points="20 6 9 17 4 12"></polyline>
-            </svg>
-          </label>
+          <!-- Custom upload disabled in MV3 -->
+          <div class="coming-soon-box">
+            <span>📁 Custom Sound Upload</span>
+            <span class="coming-soon-badge">Coming soon!</span>
+          </div>
 
           <button id="testSoundBtn" class="test-sound-btn">🔊 Test Sound</button>
-          <button id="testNotificationBtn" class="test-sound-btn" style="margin-top: 8px; background: #10b981;">🔔 Test Notification</button>
+          <button id="testNotificationBtn" class="test-sound-btn" style="margin-top:8px;background:#10b981;color:#fff;border-color:#10b981;">🔔 Test Notification</button>
         </div>
 
         <button id="saveBtn" class="save-btn">Save Settings</button>
         <div id="saveStatus" class="save-status"></div>
 
-        <div style="
-  padding: 12px 14px;
-  border-radius: 16px;
-  background: rgba(255,255,255,0.04);
-  border: 1px solid rgba(255,255,255,0.06);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-">
-  <div style="display:flex;flex-direction:column;gap:4px;">
-    <div style="font-size:12px;color:#e5e7eb;font-weight:600;letter-spacing:0.2px;">
-      Built by Taransh
-    </div>
-    <div style="font-size:11px;color:#9ca3af;">
-      Questions or glitches? I’ll fix it fast.
-    </div>
-  </div>
-
-  <div style="display:flex;gap:10px;align-items:center;">
-    <a href="https://www.linkedin.com/in/YOUR_LINKEDIN/"
-       target="_blank" rel="noopener noreferrer"
-       style="
-         font-size:12px;
-         color:#60a5fa;
-         text-decoration:none;
-         padding:8px 10px;
-         border-radius:12px;
-         background: rgba(96,165,250,0.12);
-         border: 1px solid rgba(96,165,250,0.20);
-         white-space:nowrap;
-       ">
-      LinkedIn ↗
-    </a>
-
-    <a href="https://YOUR_BUG_REPORT_LINK"
-       target="_blank" rel="noopener noreferrer"
-       style="
-         font-size:12px;
-         color:#f9fafb;
-         text-decoration:none;
-         padding:8px 10px;
-         border-radius:12px;
-         background: rgba(16,185,129,0.14);
-         border: 1px solid rgba(16,185,129,0.22);
-         white-space:nowrap;
-       ">
-      Report bug
-    </a>
-  </div>
-</div>
+        <div class="footer-card">
+          <div class="footer-info">
+            <div class="footer-name">Built by Taransh</div>
+            <div class="footer-sub">Questions or glitches? I'll fix it fast.</div>
+          </div>
+          <div class="footer-links">
+            <a href="https://www.linkedin.com/in/taransh-goyal-6a52b8296/" target="_blank" rel="noopener noreferrer" class="footer-link footer-link--blue">LinkedIn ↗</a>
+            <a href="https://forms.gle/QAdW4YE3gHEoK4e16" target="_blank" rel="noopener noreferrer" class="footer-link footer-link--green">Report bug</a>
+          </div>
+        </div>
       </div>
     </div>
-  </div>
 
+  </div>
   <script src="sounds.js"></script>
   <script src="popup.js"></script>
 </body>
