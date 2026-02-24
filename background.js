@@ -244,9 +244,11 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         eyePetMood: 'sleepy'
       });
       
-      // Give extra time before next reminder
+      // "Not now" adds 10 minutes to the normal interval (e.g., 20 -> 30)
       if (settings.enabled) {
-        scheduleBreak(settings.interval * 1.5);
+        const snoozedInterval = settings.interval + 10;
+        console.log(`⏭️ Snoozed next break to ${snoozedInterval} minutes`);
+        scheduleBreak(snoozedInterval);
       }
       
       sendResponse({ success: true });
