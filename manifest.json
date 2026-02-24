@@ -3,7 +3,7 @@
   "name": "Blink & Break - Eye Care",
   "short_name": "Blink & Break",
   "description": "Protect your eyes with gentle 20-20-20 reminders",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "minimum_chrome_version": "110",
   "permissions": ["alarms", "notifications", "storage"],
   "background": {
