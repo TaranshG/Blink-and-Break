@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Blink & Break</title>
+  <title>Blink &amp; Break – Eye Break Reminder</title>
   <link rel="stylesheet" href="popup.css">
 </head>
 <body>
@@ -50,7 +50,7 @@
             <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
             <circle cx="12" cy="12" r="3"></circle>
           </svg>
-          <h1>Blink &amp; Break</h1>
+          <div class="brand-name"><h1>Blink &amp; Break</h1><span>Eye Break Reminder</span></div>
         </div>
         <button id="settingsBtn" class="icon-btn" title="Settings">
           <svg
@@ -123,21 +123,6 @@
         </div>
       </div>
 
-      <div class="stats-grid">
-        <div class="stat-card">
-          <div id="breaksToday" class="stat-value">0</div>
-          <div class="stat-label">Today</div>
-        </div>
-        <div class="stat-card">
-          <div id="totalBreaks" class="stat-value">0</div>
-          <div class="stat-label">Total</div>
-        </div>
-        <div class="stat-card">
-          <div id="eyeScore" class="stat-value">100</div>
-          <div class="stat-label">Wellness</div>
-        </div>
-      </div>
-
       <div id="motivationCard" class="motivation-card" style="display:none">
         <div class="motivation-icon">✨</div>
         <div id="motivationText" class="motivation-text"></div>
@@ -184,80 +169,149 @@
       </div>
 
       <div class="settings-content">
-        <div class="setting-item">
-          <label for="intervalInput">Reminder Interval (minutes)</label>
-          <input type="number" id="intervalInput" min="1" max="1440" value="20">
-          <span class="input-hint">How often to remind you (1–1440 minutes)</span>
-        </div>
+        <details class="settings-section" id="timingSection" open>
+          <summary>
+            <svg class="section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="13" r="8"></circle><path d="M12 9v4l3 2M9 2h6M12 2v3"></path></svg>
+            <span>Timing</span>
+            <svg class="section-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg>
+          </summary>
+          <div class="settings-section-content">
+            <div class="setting-item">
+              <label for="intervalInput">Reminder Interval (minutes)</label>
+              <input type="text" inputmode="numeric" pattern="[0-9]*" id="intervalInput" value="20">
+              <span class="input-hint">How often to remind you (1–1440 minutes)</span>
+            </div>
 
-        <div class="setting-item">
-          <label for="durationInput">Break Duration (seconds)</label>
-          <input type="number" id="durationInput" min="5" max="300" value="20">
-          <span class="input-hint">How long each break should last (5–300 seconds)</span>
-        </div>
+            <div class="setting-item">
+              <label for="durationInput">Break Duration (seconds)</label>
+              <input type="text" inputmode="numeric" pattern="[0-9]*" id="durationInput" value="20">
+              <span class="input-hint">How long each break should last (5–300 seconds)</span>
+            </div>
 
-        <div class="setting-item">
-          <label for="snoozeInput">Snooze Duration (minutes)</label>
-          <input type="number" id="snoozeInput" min="1" max="120" value="5">
-          <span class="input-hint">How long to delay when you snooze (1–120 minutes)</span>
-          <button id="turnOffBtn" class="danger-btn">
-            🔕 Turn off breaks
-          </button>
-        </div>
-
-        <div class="toggle-item">
-          <div class="toggle-label">
-            <span>Blink Reminders</span>
-            <span class="toggle-description">Show blink exercise during breaks</span>
+            <div class="setting-item">
+              <label for="snoozeInput">Snooze Duration (minutes)</label>
+              <input type="text" inputmode="numeric" pattern="[0-9]*" id="snoozeInput" value="5">
+              <span class="input-hint">How long to delay when you snooze (1–120 minutes)</span>
+            </div>
           </div>
-          <div class="toggle" id="blinkToggle"><div class="toggle-slider"></div></div>
-        </div>
+        </details>
 
-        <div class="toggle-item">
-          <div class="toggle-label">
-            <span>Dark Mode</span>
-            <span class="toggle-description">Easier on the eyes in low light</span>
+        <details class="settings-section" id="experienceSection">
+          <summary>
+            <svg class="section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12Z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+            <span>Break Experience</span>
+            <svg class="section-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg>
+          </summary>
+          <div class="settings-section-content">
+            <div class="toggle-item">
+              <div class="toggle-label">
+                <span id="breakRemindersLabel">Break Reminders</span>
+                <span class="toggle-description" id="breakRemindersDescription">Enable scheduled eye-break reminders</span>
+              </div>
+              <button type="button" class="toggle" id="breakRemindersToggle" role="switch" aria-checked="true" aria-labelledby="breakRemindersLabel" aria-describedby="breakRemindersDescription"><span class="toggle-slider"></span></button>
+            </div>
+
+            <div class="toggle-item">
+              <div class="toggle-label">
+                <span>Blink Reminders</span>
+                <span class="toggle-description">Show blink exercise during breaks</span>
+              </div>
+              <div class="toggle" id="blinkToggle"><div class="toggle-slider"></div></div>
+            </div>
+
+            <div class="toggle-item">
+              <div class="toggle-label">
+                <span>Dark Mode</span>
+                <span class="toggle-description">Easier on the eyes in low light</span>
+              </div>
+              <div class="toggle" id="darkModeToggle"><div class="toggle-slider"></div></div>
+            </div>
           </div>
-          <div class="toggle" id="darkModeToggle"><div class="toggle-slider"></div></div>
-        </div>
+        </details>
 
-        <div class="toggle-item">
-          <div class="toggle-label">
-            <span>Sound Notifications</span>
-            <span class="toggle-description">Play sound when break starts</span>
+        <details class="settings-section" id="soundSection">
+          <summary>
+            <svg class="section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5 6 9H3v6h3l5 4V5ZM15 8a6 6 0 0 1 0 8M18 5a10 10 0 0 1 0 14"></path></svg>
+            <span>Sound</span>
+            <svg class="section-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg>
+          </summary>
+          <div class="settings-section-content">
+            <div class="toggle-item">
+              <div class="toggle-label">
+                <span>Sound Notifications</span>
+                <span class="toggle-description">Chime when a reminder arrives and a break ends</span>
+              </div>
+              <div class="toggle active" id="soundToggle"><div class="toggle-slider"></div></div>
+            </div>
+
+            <div id="soundSettings" class="sound-settings">
+              <label>Notification Sound</label>
+
+              <button class="sound-option active" data-sound="gentle-bell">
+                <span>🔔 Gentle Bell</span>
+                <svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              </button>
+              <button class="sound-option" data-sound="soft-chime">
+                <span>🎵 Soft Chime</span>
+                <svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              </button>
+              <button class="sound-option" data-sound="calm-tone">
+                <span>🧘 Calm Tone</span>
+                <svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              </button>
+              <button class="sound-option" data-sound="nature-bird">
+                <span>🐦 Nature Sound</span>
+                <svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              </button>
+
+              <!-- Custom upload disabled in MV3 -->
+              <div class="coming-soon-box">
+                <span>📁 Custom Sound Upload</span>
+                <span class="coming-soon-badge">Coming soon!</span>
+              </div>
+
+              <button id="testSoundBtn" class="test-sound-btn">🔊 Test Sound</button>
+
+            </div>
+
+            <section class="notification-help" aria-label="Notification check">
+              <h3>Check your reminders</h3>
+              <p>Click a reminder to start your break. You can also open Blink &amp; Break from the toolbar if you miss the banner.</p>
+              <button id="testNotificationBtn" class="test-sound-btn">🔔 Test Notification</button>
+              <p id="notificationTestStatus" role="status" aria-live="polite"></p>
+              <p>Sound choices save automatically. App chimes can play even when Focus or Do Not Disturb silences banners; switch off Sound Notifications or pause breaks for quiet time.</p>
+              <details id="macNotificationHelp" hidden>
+                <summary>Mac: missing banner or sound?</summary>
+                <ol>
+                  <li><strong>No banner:</strong> Open Apple menu → System Settings → Notifications, select your browser (for example, Google Chrome), and enable Allow notifications. Under Alert Style, enable Desktop and choose Temporary or Persistent (older macOS: Banners or Alerts).</li>
+                  <li><strong>Check Focus:</strong> Temporarily turn off Focus / Do Not Disturb in Control Center, or allow your browser in System Settings → Focus. Also check notification settings for screen sharing, mirroring, or a locked display if applicable.</li>
+                  <li><strong>No chime:</strong> Enable Sound Notifications here and click Test Sound. In System Settings → Sound → Output, check your speaker/headphone selection, volume, and mute. The chime uses app audio, so “Play sound for notifications” does not control it.</li>
+
+                </ol>
+                <p><a href="https://support.apple.com/en-gb/guide/mac-help/mh40583/mac" target="_blank" rel="noopener noreferrer">Apple: notification settings ↗</a><br><a href="https://support.apple.com/en-gb/guide/mac-help/mchlp2256/mac" target="_blank" rel="noopener noreferrer">Apple: sound output ↗</a></p>
+              </details>
+              <details id="windowsNotificationHelp" hidden>
+                <summary>Windows: missing banner or sound?</summary>
+                <ol>
+                  <li><strong>No banner:</strong> Open Start → Settings → System → Notifications (Windows 10: Notifications &amp; actions). Turn notifications on, select your browser, and enable notification banners.</li>
+                  <li><strong>Check quiet mode:</strong> Temporarily turn off Do not disturb in Windows 11 or Focus assist in Windows 10, then test again.</li>
+                  <li><strong>No chime:</strong> Turn on Sound Notifications above and click Test Sound. Open Settings → System → Sound and choose the speakers or headphones you want. Right-click the taskbar speaker icon → Open Volume mixer, then check that your browser is not muted and its volume is up. Click Test Sound again if the browser is not listed yet.</li>
+                </ol>
+                <p><a href="https://support.microsoft.com/en-us/windows/turn-off-notifications-about-device-setup-c88f6943-d169-23ca-5f3f-c6b927509e79" target="_blank" rel="noopener noreferrer">Microsoft: notification help ↗</a></p>
+              </details>
+              <details id="otherNotificationHelp" hidden>
+                <summary>Missing banner or sound?</summary>
+                <p>Allow notifications for your browser in system settings and check Do Not Disturb. For chimes, enable Sound Notifications here, then check your output device, volume, mute, and browser volume in your system mixer. Keep your browser running for reminders.</p>
+              </details>
+              <details>
+                <summary>Still not working?</summary>
+                <p>Restart your browser, open Blink &amp; Break → Settings, and try Test Notification and Test Sound again. Keep your browser running and your computer awake for reminders.</p>
+                <p>If the issue continues, use <a href="https://forms.gle/QAdW4YE3gHEoK4e16" target="_blank" rel="noopener noreferrer">Report bug</a>. Include your browser, whether you use Mac or Windows, which test failed, and the message shown above.</p>
+                <p>“Sent” means your browser accepted the notification. If you did not see or hear it, follow the steps above to check your computer’s settings.</p>
+              </details>
+            </section>
           </div>
-          <div class="toggle active" id="soundToggle"><div class="toggle-slider"></div></div>
-        </div>
-
-        <div id="soundSettings" class="sound-settings">
-          <label>Notification Sound</label>
-
-          <button class="sound-option active" data-sound="gentle-bell">
-            <span>🔔 Gentle Bell</span>
-            <svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg>
-          </button>
-          <button class="sound-option" data-sound="soft-chime">
-            <span>🎵 Soft Chime</span>
-            <svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg>
-          </button>
-          <button class="sound-option" data-sound="calm-tone">
-            <span>🧘 Calm Tone</span>
-            <svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg>
-          </button>
-          <button class="sound-option" data-sound="nature-bird">
-            <span>🐦 Nature Sound</span>
-            <svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg>
-          </button>
-
-          <!-- Custom upload disabled in MV3 -->
-          <div class="coming-soon-box">
-            <span>📁 Custom Sound Upload</span>
-            <span class="coming-soon-badge">Coming soon!</span>
-          </div>
-
-          <button id="testSoundBtn" class="test-sound-btn">🔊 Test Sound</button>
-          <button id="testNotificationBtn" class="test-sound-btn" style="margin-top:8px;background:#10b981;color:#fff;border-color:#10b981;">🔔 Test Notification</button>
-        </div>
+        </details>
 
         <button id="saveBtn" class="save-btn">Save Settings</button>
         <div id="saveStatus" class="save-status"></div>

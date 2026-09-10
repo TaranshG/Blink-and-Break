@@ -12,10 +12,16 @@ let settings = {
   snoozeMinutes: 5
 };
 
+chrome.runtime.getPlatformInfo().then(({ os }) => {
+  const helpId = os === 'mac' ? 'macNotificationHelp' : os === 'win' ? 'windowsNotificationHelp' : 'otherNotificationHelp';
+  document.getElementById(helpId).hidden = false;
+});
+
 // ─── Init ─────────────────────────────────────────────────────────────────────
 
 chrome.storage.sync.get(null, (data) => {
   settings = { ...settings, ...data };
+  applyDarkMode(settings.darkMode);
   console.log('Initializing with settings:', data);
 
   if (data.isBreakActive === true) {
@@ -28,7 +34,20 @@ chrome.storage.sync.get(null, (data) => {
   }
 });
 
-chrome.storage.onChanged.addListener((changes) => {
+chrome.storage.onChanged.addListener((changes, namespace) => {
+  if (namespace !== 'sync') return;
+  if (changes.darkMode) applyDarkMode(changes.darkMode.newValue);
+  if (changes.soundEnabled) {
+    settings.soundEnabled = changes.soundEnabled.newValue !== false;
+    document.getElementById('soundToggle').classList.toggle('active', settings.soundEnabled);
+    document.getElementById('soundSettings').style.display = settings.soundEnabled ? 'flex' : 'none';
+  }
+  if (changes.selectedSound) {
+    settings.selectedSound = changes.selectedSound.newValue;
+    document.querySelectorAll('.sound-option[data-sound]').forEach(button => {
+      button.classList.toggle('active', button.dataset.sound === settings.selectedSound);
+    });
+  }
   if (changes.isBreakActive) {
     if (changes.isBreakActive.newValue === true) {
       showBreakView();
@@ -42,6 +61,7 @@ chrome.storage.onChanged.addListener((changes) => {
   }
   if (changes.enabled != null) {
     settings.enabled = changes.enabled.newValue;
+    updateBreakRemindersToggle();
     // Reflect the enabled/disabled state on the toggle button live.
     if (document.getElementById('mainView').style.display !== 'none') {
       chrome.storage.sync.get(['isPaused'], (data) => {
@@ -73,7 +93,7 @@ function showBreakView() {
   chrome.storage.sync.get(
     ['darkMode', 'breakDuration', 'duration', 'blinkReminders', 'snoozeMinutes'],
     (data) => {
-      document.body.classList.toggle('dark-mode', !!data.darkMode);
+      applyDarkMode(data.darkMode);
       settings.snoozeMinutes = data.snoozeMinutes ?? 5;
 
       let timeLeft = data.breakDuration || data.duration || 20;
@@ -106,7 +126,7 @@ function showBreakView() {
 function showBreakComplete(response) {
   chrome.storage.sync.get(['soundEnabled', 'selectedSound'], (data) => {
     if (data.soundEnabled !== false) {
-      SoundManager.play(data.selectedSound || 'gentle-bell');
+      SoundManager.play(data.selectedSound || 'gentle-bell').catch(error => console.error('Completion sound failed:', error));
     }
   });
 
@@ -180,15 +200,15 @@ function showMainView() {
 }
 
 function initializeUI() {
+  updateBreakRemindersToggle();
   document.getElementById('intervalInput').value  = settings.interval;
   document.getElementById('durationInput').value  = settings.duration;
   document.getElementById('snoozeInput').value    = settings.snoozeMinutes ?? 5;
 
   document.getElementById('blinkToggle').classList.toggle('active', !!settings.blinkReminders);
-  document.getElementById('darkModeToggle').classList.toggle('active', !!settings.darkMode);
   document.getElementById('soundToggle').classList.toggle('active', settings.soundEnabled !== false);
 
-  document.body.classList.toggle('dark-mode', !!settings.darkMode);
+  applyDarkMode(settings.darkMode);
 
   document.getElementById('soundSettings').style.display =
     (settings.soundEnabled !== false) ? 'flex' : 'none';
@@ -197,7 +217,7 @@ function initializeUI() {
     btn.classList.toggle('active', btn.dataset.sound === settings.selectedSound);
   });
 
-  updateStats();
+  updateAchievements();
   updatePet();
 
   // Read isPaused fresh from storage for toggle button
@@ -218,7 +238,7 @@ function updateToggleButton(isPaused) {
     // Disabled state: show play icon so user can click to re-enable.
     pauseIcon.style.display  = 'none';
     playIcon.style.display   = 'block';
-    statusText.textContent   = 'Disabled — click ▶ to enable';
+    statusText.textContent   = 'Breaks paused';
     statusText.style.color   = '#ef4444';
     toggleBtn.title = 'Enable breaks';
     return;
@@ -319,7 +339,7 @@ function renderTimer(remainingMs, baseMs, isSnoozed, isPaused) {
 
   const statusText = document.getElementById('statusText');
   if (!settings.enabled) {
-    statusText.textContent = 'Disabled — click ▶ to enable';
+    statusText.textContent = 'Breaks paused';
     statusText.style.color = '#ef4444';
   } else if (isPaused) {
     statusText.textContent = 'Paused';
@@ -333,7 +353,7 @@ function renderTimer(remainingMs, baseMs, isSnoozed, isPaused) {
   }
 }
 
-// ─── Stats / Pet ──────────────────────────────────────────────────────────────
+// ─── Achievements / Pet ──────────────────────────────────────────────────────────────
 
 function updatePet() {
   chrome.storage.sync.get(['eyePetName', 'eyePetMood', 'eyePetLevel', 'eyePetXP'], (data) => {
@@ -367,14 +387,10 @@ function updatePet() {
   });
 }
 
-function updateStats() {
+function updateAchievements() {
   chrome.storage.sync.get(
-    ['breaksToday', 'totalBreaksCompleted', 'eyeScore', 'latestAchievement'],
+    ['latestAchievement'],
     (data) => {
-      document.getElementById('breaksToday').textContent  = data.breaksToday          || 0;
-      document.getElementById('totalBreaks').textContent  = data.totalBreaksCompleted || 0;
-      document.getElementById('eyeScore').textContent     = data.eyeScore             || 100;
-
       if (data.latestAchievement) {
         const card = document.getElementById('motivationCard');
         document.getElementById('motivationText').textContent = data.latestAchievement;
@@ -416,27 +432,21 @@ document.getElementById('closeSettingsBtn').addEventListener('click', () => {
 
 // Pause / Resume / Enable toggle
 document.getElementById('toggleBtn').addEventListener('click', () => {
+  const button = document.getElementById('toggleBtn');
+  if (button.disabled) return;
+  button.disabled = true;
+  const finish = () => {
+    const error = chrome.runtime.lastError;
+    button.disabled = false;
+    if (error) console.error('Timer change failed:', error.message);
+    updateTimerDisplay();
+  };
   if (!settings.enabled) {
-    // Re-enable breaks after "Turn off breaks" notification action.
-    chrome.runtime.sendMessage({ action: 'enableBreaks' }, () => {
-      settings.enabled = true;
-      updateToggleButton(false);
-    });
+    chrome.runtime.sendMessage({ action: 'enableBreaks' }, finish);
     return;
   }
-
   chrome.storage.sync.get(['isPaused'], (data) => {
-    if (data.isPaused) {
-      // Resume
-      chrome.runtime.sendMessage({ action: 'resumeTimer' }, () => {
-        updateToggleButton(false);
-      });
-    } else {
-      // Pause
-      chrome.runtime.sendMessage({ action: 'pauseTimer' }, () => {
-        updateToggleButton(true);
-      });
-    }
+    chrome.runtime.sendMessage({ action: data.isPaused ? 'resumeTimer' : 'pauseTimer' }, finish);
   });
 });
 
@@ -452,15 +462,22 @@ document.getElementById('blinkToggle').addEventListener('click', function () {
   settings.blinkReminders = this.classList.contains('active');
 });
 
-document.getElementById('darkModeToggle').addEventListener('click', function () {
-  this.classList.toggle('active');
-  settings.darkMode = this.classList.contains('active');
+function applyDarkMode(enabled) {
+  settings.darkMode = !!enabled;
   document.body.classList.toggle('dark-mode', settings.darkMode);
+  document.getElementById('darkModeToggle').classList.toggle('active', settings.darkMode);
+}
+
+document.getElementById('darkModeToggle').addEventListener('click', function () {
+  applyDarkMode(!settings.darkMode);
+  // Theme selection takes effect immediately, without needing Save Settings.
+  chrome.storage.sync.set({ darkMode: settings.darkMode });
 });
 
 document.getElementById('soundToggle').addEventListener('click', function () {
   this.classList.toggle('active');
   settings.soundEnabled = this.classList.contains('active');
+  chrome.storage.sync.set({ soundEnabled: settings.soundEnabled });
   document.getElementById('soundSettings').style.display =
     settings.soundEnabled ? 'flex' : 'none';
 });
@@ -470,26 +487,71 @@ document.querySelectorAll('.sound-option[data-sound]').forEach(btn => {
     document.querySelectorAll('.sound-option[data-sound]').forEach(b => b.classList.remove('active'));
     this.classList.add('active');
     settings.selectedSound = this.dataset.sound;
-    SoundManager.play(settings.selectedSound);
+    chrome.storage.sync.set({ selectedSound: settings.selectedSound });
+    SoundManager.play(settings.selectedSound).catch(error => {
+      document.getElementById('notificationTestStatus').textContent = `Sound failed: ${error.message}`;
+    });
   });
 });
 
 document.getElementById('testSoundBtn').addEventListener('click', () => {
-  SoundManager.play(settings.selectedSound);
+  runReminderTest('testReminderSound', 'testSoundBtn');
 });
 
+function runReminderTest(action, buttonId) {
+  const button = document.getElementById(buttonId);
+  const status = document.getElementById('notificationTestStatus');
+  button.disabled = true;
+  status.textContent = 'Testing…';
+  chrome.runtime.sendMessage({ action }, (response) => {
+    button.disabled = false;
+    const error = chrome.runtime.lastError?.message || response?.error;
+    if (error || !response?.success) {
+      status.textContent = `Test failed: ${error || 'No response. Restart your browser and try again.'}`;
+    } else if (action === 'testReminderSound') {
+      status.textContent = 'Sound playback started. If you heard nothing, check your output device, volume, and mute using the help below.';
+    } else if (response.soundError) {
+      status.textContent = `Banner sent, but the chime failed: ${response.soundError}. Try Test Sound and the help below.`;
+    } else {
+      status.textContent = response.soundEnabled
+        ? 'Banner sent and chime started. If either is missing, use the help below.'
+        : 'Banner sent. Chime is off because Sound Notifications is disabled.';
+    }
+    if (error || response?.soundError) {
+      document.querySelectorAll('.notification-help details').forEach(details => {
+        if (!details.hidden) details.open = true;
+      });
+    }
+  });
+}
+
 document.getElementById('testNotificationBtn').addEventListener('click', () => {
-  chrome.runtime.sendMessage({ action: 'testNotification' });
+  runReminderTest('testNotification', 'testNotificationBtn');
 });
 
 document.getElementById('skipBreakBtn').addEventListener('click', skipBreak);
 document.getElementById('snoozeBreakBtn').addEventListener('click', snoozeBreak);
 
-document.getElementById('turnOffBtn')?.addEventListener('click', () => {
-  chrome.runtime.sendMessage({ action: 'disableBreaks' }, () => {
-    settings.enabled = false;
-    // Force UI refresh
-    updateToggleButton(false);
+function updateBreakRemindersToggle() {
+  const toggle = document.getElementById('breakRemindersToggle');
+  const enabled = settings.enabled !== false;
+  toggle.classList.toggle('active', enabled);
+  toggle.setAttribute('aria-checked', String(enabled));
+}
+
+document.getElementById('breakRemindersToggle').addEventListener('click', () => {
+  const toggle = document.getElementById('breakRemindersToggle');
+  const enabled = settings.enabled === false;
+  toggle.disabled = true;
+  chrome.runtime.sendMessage({ action: enabled ? 'enableBreaks' : 'disableBreaks' }, (response) => {
+    const error = chrome.runtime.lastError;
+    toggle.disabled = false;
+    if (error || !response?.success) {
+      console.error('Could not change break reminders:', error?.message || response?.error);
+      return;
+    }
+    settings.enabled = enabled;
+    updateBreakRemindersToggle();
     updateTimerDisplay();
   });
 });
@@ -508,6 +570,7 @@ document.getElementById('saveBtn').addEventListener('click', () => {
   const newInterval     = Math.max(1,   Math.min(1440, parseInt(document.getElementById('intervalInput').value)  || 20));
   const newDuration     = Math.max(5,   Math.min(300,  parseInt(document.getElementById('durationInput').value)  || 20));
   const newSnooze       = Math.max(1,   Math.min(120,  parseInt(document.getElementById('snoozeInput').value)    || 5));
+  const intervalChanged = newInterval !== settings.interval;
   const newEnabled      = settings.enabled; // preserve current enabled state
   const newSoundEnabled = settings.soundEnabled;
   const newSound        = settings.selectedSound;
@@ -528,6 +591,7 @@ document.getElementById('saveBtn').addEventListener('click', () => {
     // Tell background to apply immediately
     chrome.runtime.sendMessage({
       action:        'applySettings',
+      intervalChanged,
       interval:      newInterval,
       duration:      newDuration,
       snoozeMinutes: newSnooze,
@@ -547,7 +611,7 @@ document.getElementById('saveBtn').addEventListener('click', () => {
   });
 });
 
-setInterval(updateStats, 10000);
+setInterval(updateAchievements, 10000);
 setInterval(updatePet,   8000);
 
 window.addEventListener('unload', () => {

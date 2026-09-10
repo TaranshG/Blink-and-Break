@@ -24,25 +24,20 @@ function clearAllBreakAlarms(cb) {
  * NOTE: All work (create alarm + write storage) happens inside the
  * clearAllBreakAlarms callback to prevent race conditions.
  */
-function scheduleBreakInMs(delayMs) {
+function scheduleBreakInMs(delayMs, onScheduled, isSnoozed = false) {
   if (delayMs < 0) delayMs = 0;
-  // Chrome MV3 enforces a minimum alarm delay of 1 minute (60 000 ms).
-  // Values below that are silently clamped/ignored on many Chrome versions.
-  // Use at least 1 minute so the alarm always fires.
-  const CHROME_MIN_DELAY_MS = 60000; // 1 minute
-  if (delayMs < CHROME_MIN_DELAY_MS) delayMs = CHROME_MIN_DELAY_MS;
-  const delayMinutes = delayMs / 60000;
-  const fireTime = Date.now() + delayMs;
-
   clearAllBreakAlarms(() => {
     // Create the alarm and write storage INSIDE the callback so there is
     // no race with the clear operation.
-    chrome.alarms.create('eyeBreak', { delayInMinutes: delayMinutes });
+    // Preserve the exact remaining time. Chrome may deliver short alarms late.
+    const fireTime = Date.now() + delayMs;
+    chrome.alarms.create('eyeBreak', { when: fireTime });
     chrome.storage.sync.set({
       nextAlarmFireTime: fireTime,
       isPaused: false,
-      pausedRemainingMs: null
-    });
+      pausedRemainingMs: null,
+      isSnoozed
+    }, () => { if (onScheduled) onScheduled(); });
     chrome.alarms.get('eyeBreak', (alarm) => {
       if (alarm) {
         console.log(`✅ Break scheduled for: ${new Date(alarm.scheduledTime).toLocaleTimeString()}`);
@@ -156,6 +151,63 @@ chrome.alarms.onAlarm.addListener((alarm) => {
 
 // ─── Notification ─────────────────────────────────────────────────────────────
 
+// Lazily create one audio document; Chrome closes it after 30 seconds of silence.
+let creatingAudioDocument;
+
+async function ensureAudioDocument() {
+  if (!creatingAudioDocument) {
+    creatingAudioDocument = (async () => {
+      const url = chrome.runtime.getURL('offscreen.html');
+      const contexts = chrome.runtime.getContexts
+        ? await chrome.runtime.getContexts({ contextTypes: ['OFFSCREEN_DOCUMENT'], documentUrls: [url] })
+        : (await clients.matchAll()).filter(client => client.url === url);
+      if (contexts.length) return;
+      await chrome.offscreen.createDocument({
+        url: 'offscreen.html',
+        reasons: ['AUDIO_PLAYBACK'],
+        justification: 'Play the selected break reminder chime while the popup is closed.'
+      });
+    })().finally(() => { creatingAudioDocument = null; });
+  }
+  await creatingAudioDocument;
+}
+
+async function playReminderSound(sound) {
+  await ensureAudioDocument();
+  const result = await chrome.runtime.sendMessage({
+    target: 'reminder-audio', action: 'playSound', sound
+  });
+  if (!result?.success) throw new Error(result?.error || 'The reminder sound could not start.');
+}
+
+async function createNotification(id, content) {
+  const [platform, permission, preferences] = await Promise.all([
+    chrome.runtime.getPlatformInfo(),
+    chrome.notifications.getPermissionLevel(),
+    chrome.storage.sync.get(['soundEnabled', 'selectedSound'])
+  ]);
+  if (permission !== 'granted') {
+    throw new Error('Notifications are blocked. Check the extension notification permission and your browser’s system notification settings.');
+  }
+
+  await chrome.notifications.create(id, {
+    type: 'basic',
+    iconUrl: chrome.runtime.getURL('icons/icon128.png'),
+    priority: 2,
+    // Play one selected app chime, avoiding a second system sound.
+    silent: true,
+    ...content,
+    // Use standard banners on macOS and persistent reminders elsewhere.
+    requireInteraction: platform.os !== 'mac'
+  });
+  let soundError;
+  if (preferences.soundEnabled !== false) {
+    try { await playReminderSound(preferences.selectedSound || 'gentle-bell'); }
+    catch (error) { soundError = error.message; }
+  }
+  return { soundEnabled: preferences.soundEnabled !== false, soundError };
+}
+
 async function showBreakNotification() {
   console.log('📢 Showing break notification...');
 
@@ -178,21 +230,17 @@ async function showBreakNotification() {
   const title = messages[Math.floor(Math.random() * messages.length)];
 
   try {
-    await chrome.notifications.create('eyeBreak', {
-      type:               'basic',
-      iconUrl:            'icons/icon128.png',
+    const result = await createNotification('eyeBreak', {
       title,
-      // Make the primary action explicit so users aren’t confused.
-      message:            'Press “Start break” to begin your 20-second break',
-      priority:           2,
-      requireInteraction: true,
-      silent:             false,
+      // Clicking the banner works even when macOS hides the action buttons.
+      message:            `Click this notification to begin your ${dur}-second break`,
       // Button order matters: primary action first.
       buttons: [
         { title: '▶ Start break' },
         { title: '💤 Snooze' }
       ]
     });
+    if (result.soundError) console.error('Reminder sound failed:', result.soundError);
     console.log('✅ Notification created');
   } catch (error) {
     console.error('❌ Notification failed:', error);
@@ -202,7 +250,7 @@ async function showBreakNotification() {
 chrome.notifications.onClicked.addListener((notificationId) => {
   console.log(`🖱️ Notification clicked: ${notificationId}`);
   chrome.notifications.clear(notificationId);
-  openBreakPopupWindow();
+  if (notificationId === 'eyeBreak') openBreakPopupWindow();
 });
 
 chrome.notifications.onButtonClicked.addListener((notificationId, buttonIndex) => {
@@ -235,7 +283,18 @@ chrome.notifications.onButtonClicked.addListener((notificationId, buttonIndex) =
 // ─── Message handler ─────────────────────────────────────────────────────────
 
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  if (request.target === 'reminder-audio') return;
   console.log('📨 Message received:', request.action);
+
+  if (request.action === 'testReminderSound') {
+    chrome.storage.sync.get(['selectedSound']).then(data =>
+      playReminderSound(data.selectedSound || 'gentle-bell')
+    ).then(
+      () => sendResponse({ success: true }),
+      error => sendResponse({ success: false, error: error.message })
+    );
+    return true;
+  }
 
   // ── getTimeRemaining ──────────────────────────────────────────────────────
   if (request.action === 'getTimeRemaining') {
@@ -245,7 +304,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         if (data.isPaused) {
           sendResponse({
             timeRemaining: data.pausedRemainingMs ?? 0,
-            isSnoozed:     false,
+            isSnoozed:     !!data.isSnoozed,
             isPaused:      true
           });
           return;
@@ -335,34 +394,45 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
   // ── pauseTimer ────────────────────────────────────────────────────────────
   if (request.action === 'pauseTimer') {
-    chrome.storage.sync.get(['nextAlarmFireTime', 'interval'], (data) => {
-      const remaining = data.nextAlarmFireTime
-        ? Math.max(0, data.nextAlarmFireTime - Date.now())
-        : (data.interval ?? 20) * 60000;
-
-      // Set isPaused in storage BEFORE clearing alarms so the storage watcher
-      // (which checks enabled/paused) doesn't re-schedule.
-      chrome.storage.sync.set({
-        isPaused:          true,
-        pausedRemainingMs: remaining,
-        nextAlarmFireTime: null
-      }, () => {
-        clearAllBreakAlarms(() => {
+    chrome.storage.sync.get(['isPaused', 'pausedRemainingMs', 'nextAlarmFireTime', 'interval'], (data) => {
+      // Repeated pause requests must not replace the frozen remainder.
+      if (data.isPaused) {
+        sendResponse({ success: true, pausedRemainingMs: data.pausedRemainingMs ?? 0 });
+        return;
+      }
+      const freeze = (fireTime) => {
+        const remaining = fireTime != null
+          ? Math.max(0, fireTime - Date.now())
+          : (data.interval ?? 20) * 60000;
+        chrome.storage.sync.set({
+          isPaused: true,
+          pausedRemainingMs: remaining,
+          nextAlarmFireTime: null
+        }, () => clearAllBreakAlarms(() => {
           sendResponse({ success: true, pausedRemainingMs: remaining });
+        }));
+      };
+      if (data.nextAlarmFireTime != null) {
+        freeze(data.nextAlarmFireTime);
+      } else {
+        // Recover the existing timer if its stored deadline is missing.
+        chrome.alarms.get('eyeBreakSnooze', snooze => {
+          chrome.alarms.get('eyeBreak', alarm => freeze((snooze || alarm)?.scheduledTime));
         });
-      });
+      }
     });
     return true;
   }
 
   // ── resumeTimer ───────────────────────────────────────────────────────────
   if (request.action === 'resumeTimer') {
-    chrome.storage.sync.get(['pausedRemainingMs', 'interval'], (data) => {
-      const remaining = (data.pausedRemainingMs != null && data.pausedRemainingMs > 0)
-        ? data.pausedRemainingMs
-        : (data.interval ?? 20) * 60000;
-      scheduleBreakInMs(remaining);
-      sendResponse({ success: true });
+    chrome.storage.sync.get(['isPaused', 'pausedRemainingMs', 'interval', 'isSnoozed'], (data) => {
+      if (!data.isPaused) {
+        sendResponse({ success: true });
+        return;
+      }
+      const remaining = data.pausedRemainingMs ?? (data.interval ?? 20) * 60000;
+      scheduleBreakInMs(remaining, () => sendResponse({ success: true }), !!data.isSnoozed);
     });
     return true;
   }
@@ -397,27 +467,22 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     settings.enabled       = enabled;
 
     chrome.storage.sync.get(['isPaused'], (data) => {
-      if (!enabled) {
-        // Disable: clear alarms first, then write storage.
+      if (!enabled || (data.isPaused && request.intervalChanged)) {
+        // Apply a changed interval without starting paused/disabled reminders.
         clearAllBreakAlarms(() => {
           chrome.storage.sync.set({
-            isPaused:          false,
-            pausedRemainingMs: null,
-            nextAlarmFireTime: null
-          });
-          sendResponse({ success: true });
+            isPaused:          enabled ? true : false,
+            pausedRemainingMs: request.intervalChanged ? interval * 60000 : null,
+            nextAlarmFireTime: null,
+            isSnoozed:         false
+          }, () => sendResponse({ success: true }));
         });
       } else if (data.isPaused) {
-        // Currently paused: update the stored remainder to the new full
-        // interval so Resume will use it.
-        chrome.storage.sync.set({
-          pausedRemainingMs: interval * 60000
-        });
+        // Other preferences leave the frozen countdown untouched.
         sendResponse({ success: true });
       } else {
-        // Running: reschedule immediately with new interval.
-        scheduleBreak(interval);
-        sendResponse({ success: true });
+        // Respond only after the new countdown is ready for the popup.
+        scheduleBreakInMs(interval * 60000, () => sendResponse({ success: true }));
       }
     });
     return true;
@@ -519,21 +584,13 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
   // ── testNotification ──────────────────────────────────────────────────────
   if (request.action === 'testNotification') {
-    chrome.notifications.create('test', {
-      type:               'basic',
-      iconUrl:            'icons/icon128.png',
-      title:              'Test Notification 🧪',
-      message:            'If you see this, notifications work!',
-      priority:           2,
-      requireInteraction: true,
-      silent:             false
-    }, (notifId) => {
-      if (chrome.runtime.lastError) {
-        sendResponse({ success: false, error: chrome.runtime.lastError.message });
-      } else {
-        sendResponse({ success: true });
-      }
-    });
+    createNotification('test', {
+      title: 'Test Notification 🧪',
+      message: 'If you see this, notifications work!'
+    }).then(
+      result => sendResponse({ success: true, ...result }),
+      (error) => sendResponse({ success: false, error: error.message })
+    );
     return true;
   }
 });
