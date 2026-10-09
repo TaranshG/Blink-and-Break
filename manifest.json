@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "BreakChime",
+  "name": "BreakChime - Screen Break Reminder",
   "short_name": "BreakChime",
   "description": "BreakChime helps protect your eyes with gentle 20-20-20 reminders",
   "version": "1.0.4",
