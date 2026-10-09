@@ -1,10 +1,10 @@
-# Blink & Break – Eye Break Reminder
+# BreakChime
 
 A Chrome extension for eye-break reminders, with a configurable interval, break duration, snooze, and chime.
 
 ## Get started
 
-After installing from the Chrome Web Store, open Chrome’s Extensions menu (the puzzle-piece icon) and select Blink & Break – Eye Break Reminder. Pin it for easy access. Open its Settings, turn on Sound Notifications, choose a chime, and try Test Notification.
+After installing from the Chrome Web Store, open Chrome’s Extensions menu (the puzzle-piece icon) and select BreakChime. Pin it for easy access. Open its Settings, turn on Sound Notifications, choose a chime, and try Test Notification.
 
 Pause freezes the current countdown. Resume continues from that remaining time; saving a changed reminder interval immediately replaces the countdown with the new interval, while keeping it paused if it was paused. Saving other preferences leaves a paused countdown unchanged. Use Reset to start the current interval over.
 
@@ -12,7 +12,7 @@ Dark mode, sound on/off, and the selected chime save immediately. Use **Save Set
 
 ## Reminder behavior
 
-Click the notification body to start the break. Start break and Snooze actions are also available; macOS may hide actions until you hover or expand the notification. If you miss a banner, open Blink & Break from the toolbar to access the pending break.
+Click the notification body to start the break. Start break and Snooze actions are also available; macOS may hide actions until you hover or expand the notification. If you miss a banner, open BreakChime from the toolbar to access the pending break.
 
 Mac reminders request standard banners. Other platforms retain persistent reminders. The extension plays the selected chime itself, including while the popup is closed, and silences the native notification sound to avoid two sounds. Turning Sound Notifications off silences automatic reminder and completion chimes. Test Sound explicitly previews the chime using the background audio path.
 
@@ -25,7 +25,7 @@ Keep the browser running and the computer awake for timely reminders. The popup 
 - **No banner:** Apple menu → System Settings → Notifications → your browser (such as Google Chrome). Enable Allow notifications. Current macOS offers Desktop with Temporary or Persistent styles; older versions use Banners or Alerts. Check the display-sharing and lock-screen notification options where relevant. [Apple notification settings](https://support.apple.com/en-gb/guide/mac-help/mh40583/mac).
 - **Focus is active:** Turn it off briefly to test, or allow your browser in System Settings → Focus. [Apple Focus guide](https://support.apple.com/en-ie/guide/mac-help/mchl613dc43f/mac).
 - **No chime:** Enable Sound Notifications in the extension and click Test Sound. Check System Settings → Sound → Output for the selected device, volume, and mute. The app chime uses media output, not the system notification-sound toggle. [Apple sound output guide](https://support.apple.com/en-gb/guide/mac-help/mchlp2256/mac).
-- **Still failing:** Restart your browser, open Blink & Break → Settings, and run both tests. Use Report bug in Settings if the problem continues, including your browser, operating system, and test result. The test result distinguishes notification creation errors from audio playback errors. Browser acceptance does not prove that macOS displayed the banner or that the speakers were audible.
+- **Still failing:** Restart your browser, open BreakChime → Settings, and run both tests. Use Report bug in Settings if the problem continues, including your browser, operating system, and test result. The test result distinguishes notification creation errors from audio playback errors. Browser acceptance does not prove that macOS displayed the banner or that the speakers were audible.
 
 Chrome's website notification settings are not a substitute for the browser's macOS notification permission. This extension uses `chrome.notifications`, not website push notifications.
 
